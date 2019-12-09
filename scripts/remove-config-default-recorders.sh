@@ -36,5 +36,5 @@ if [ ! -z "$CONFIGRECORDER" ] || [ ! -z "$DELIVERYCHANNEL" ]
 				echo "Doing Nothing & Exiting"
 		fi
   else
-	echo "AWS Account is clear to deploy CloudFormation Temaple for AWSConfig Lab"
+	echo "AWS Account is clear to deploy CloudFormation Templete for this AWSConfig Lab"
 fi
