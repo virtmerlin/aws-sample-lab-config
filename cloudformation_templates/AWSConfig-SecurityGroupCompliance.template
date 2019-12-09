@@ -1,0 +1,559 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "AWS CloudFormation Sample Template Config: This template demonstrates the usage of AWS Config resources.  **WARNING** You will be billed for the AWS resources used if you create a stack from this template.",
+    "Resources": {
+        "ConfigRecorder": {
+            "Type": "AWS::Config::ConfigurationRecorder",
+            "Properties": {
+                "Name": "default",
+                "RecordingGroup": {
+                    "ResourceTypes": [
+                        "AWS::EC2::SecurityGroup"
+                    ]
+                },
+                "RoleARN": {
+                    "Fn::GetAtt": [
+                        "ConfigRole",
+                        "Arn"
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "fd3d8ce9-64ae-44ce-9f47-6371e7e0dfca"
+                }
+            }
+        },
+        "DeliveryChannel": {
+            "Type": "AWS::Config::DeliveryChannel",
+            "Properties": {
+                "ConfigSnapshotDeliveryProperties": {
+                    "DeliveryFrequency": "Six_Hours"
+                },
+                "S3BucketName": {
+                    "Ref": "ConfigBucket"
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "2a35c781-54bf-4365-a598-d817a7ea55b4"
+                }
+            }
+        },
+        "ConfigBucket": {
+            "Type": "AWS::S3::Bucket",
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "a67c6bf2-8620-4f8e-bc43-dcd42bca5d14"
+                }
+            }
+        },
+        "ConfigRuleForSecurityGroupValidation": {
+            "Type": "AWS::Config::ConfigRule",
+            "Properties": {
+                "ConfigRuleName": "ConfigRuleForSecurityGroupValidation",
+                "Scope": {
+                    "ComplianceResourceTypes": [
+                        "AWS::EC2::SecurityGroup"
+                    ]
+                },
+                "Source": {
+                    "Owner": "CUSTOM_LAMBDA",
+                    "SourceDetails": [
+                        {
+                            "EventSource": "aws.config",
+                            "MessageType": "ConfigurationItemChangeNotification"
+                        }
+                    ],
+                    "SourceIdentifier": {
+                        "Fn::GetAtt": [
+                            "SecurityGroupComplianceCheck",
+                            "Arn"
+                        ]
+                    }
+                }
+            },
+            "DependsOn": [
+                "ConfigPermissionToCallLambda",
+                "ConfigRecorder"
+            ],
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "caf9deb3-d822-44a2-8352-6c84e1ba96df"
+                }
+            }
+        },
+        "ConfigPermissionToCallLambda": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+                "FunctionName": {
+                    "Fn::GetAtt": [
+                        "SecurityGroupComplianceCheck",
+                        "Arn"
+                    ]
+                },
+                "Action": "lambda:InvokeFunction",
+                "Principal": "config.amazonaws.com"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "f21b78c5-4288-4ad3-bba6-3ba158d056a4"
+                }
+            }
+        },
+        "ConfigRemediationSecurityGroupValidation": {
+            "Type": "AWS::Config::RemediationConfiguration",
+            "Properties": {
+                "ConfigRuleName": { "Ref": "ConfigRuleForSecurityGroupValidation"},
+                "Parameters": {
+                    "GroupId": {
+                        "ResourceValue": {
+                            "Value": "RESOURCE_ID"
+                        }
+                    }
+                },
+                "Automatic": false,
+                "MaximumAutomaticAttempts": 5,
+                "RetryAttemptSeconds": 60,
+                "TargetId": {
+                    "Ref": "SSMSecurityGroupRemediateDocument"
+                },
+                "TargetType": "SSM_DOCUMENT",
+                "TargetVersion": "$DEFAULT"
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "0d6c2c54-295c-4f19-bfed-ef03991087e3"
+                }
+            },
+            "DependsOn": [
+                "ConfigRuleForSecurityGroupValidation",
+                "SSMSecurityGroupRemediateDocument"
+            ]
+        },
+        "SecurityGroupComplianceCheck": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "Checks if Required & Denied Ingress Rules exist in non desired state in a given Security Group",
+                "Code": {
+                    "S3Bucket": "mglab-aws-samples",
+                    "S3Key": "aws-sample-lab-config/SecurityGroupComplianceCheck.zip"
+                },
+                "Handler": "SecurityGroupComplianceCheck.lambda_handler",
+                "Runtime": "python3.8",
+                "Timeout": "60",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "8e3ab785-13fd-447a-bf49-64e160b81e7a"
+                }
+            }
+        },
+        "LambdaExecutionRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "lambda.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "Policies": [
+                    {
+                        "PolicyName": "root",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "logs:CreateLogStream",
+                                        "logs:CreateLogGroup",
+                                        "logs:PutLogEvents"
+                                    ],
+                                    "Resource": "arn:aws:logs:*:*:*"
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": [
+                                        "ec2:RevokeSecurityGroupIngress",
+                                        "ec2:AuthorizeSecurityGroupIngress",
+                                        "config:PutEvaluations",
+                                        "ec2:DescribeSecurityGroups"
+                                    ],
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "7ca85071-5300-4fca-be0c-17c0553eef5e"
+                }
+            }
+        },
+        "ConfigRole": {
+            "Type": "AWS::IAM::Role",
+            "Properties": {
+                "AssumeRolePolicyDocument": {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Principal": {
+                                "Service": [
+                                    "config.amazonaws.com"
+                                ]
+                            },
+                            "Action": [
+                                "sts:AssumeRole"
+                            ]
+                        }
+                    ]
+                },
+                "ManagedPolicyArns": [
+                    "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
+                ],
+                "Policies": [
+                    {
+                        "PolicyName": "root",
+                        "PolicyDocument": {
+                            "Version": "2012-10-17",
+                            "Statement": [
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "s3:GetBucketAcl",
+                                    "Resource": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:aws:s3:::",
+                                                {
+                                                    "Ref": "ConfigBucket"
+                                                }
+                                            ]
+                                        ]
+                                    }
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "s3:PutObject",
+                                    "Resource": {
+                                        "Fn::Join": [
+                                            "",
+                                            [
+                                                "arn:aws:s3:::",
+                                                {
+                                                    "Ref": "ConfigBucket"
+                                                },
+                                                "/AWSLogs/",
+                                                {
+                                                    "Ref": "AWS::AccountId"
+                                                },
+                                                "/*"
+                                            ]
+                                        ]
+                                    },
+                                    "Condition": {
+                                        "StringEquals": {
+                                            "s3:x-amz-acl": "bucket-owner-full-control"
+                                        }
+                                    }
+                                },
+                                {
+                                    "Effect": "Allow",
+                                    "Action": "config:Put*",
+                                    "Resource": "*"
+                                }
+                            ]
+                        }
+                    }
+                ]
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "d7f56e64-c53f-416f-938b-23bb7f0c18fc"
+                }
+            }
+        },
+        "SecurityGroupComplianceRemediate": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+                "Description": "If Required & Denied Rules dont exist in a desired state, removes or adds Ingress rules as required",
+                "Code": {
+                    "S3Bucket": "mglab-aws-samples",
+                    "S3Key": "aws-sample-lab-config/SecurityGroupComplianceRemediate.zip"
+                },
+                "Handler": "SecurityGroupComplianceRemediate.lambda_handler",
+                "Runtime": "python3.8",
+                "Timeout": "60",
+                "Role": {
+                    "Fn::GetAtt": [
+                        "LambdaExecutionRole",
+                        "Arn"
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "64591b84-2cbf-4610-b07c-c12e314be439"
+                }
+            }
+        },
+        "SSMSecurityGroupRemediateDocument": {
+            "Type": "AWS::SSM::Document",
+            "Properties": {
+                "DocumentType": "Automation",
+                "Content": {
+                    "description": "Remediate Action For SecurityGroupCheck Config rule compliance",
+                    "schemaVersion": "0.3",
+                    "parameters": {
+                        "GroupId": {
+                            "type": "String",
+                            "description": "(Required) Security Group ID"
+                        }
+                    },
+                    "mainSteps": [
+                        {
+                            "name": "ExecLambda",
+                            "action": "aws:invokeLambdaFunction",
+                            "inputs": {
+                                "FunctionName": {
+                                    "Fn::GetAtt": [
+                                        "SecurityGroupComplianceRemediate",
+                                        "Arn"
+                                    ]
+                                },
+                                "Payload": "\"{\\\"parameterName\\\":\\\"GroupID\\\", \\\"parameterValue\\\":\\\"{{GroupId}}\\\"}\""
+                            }
+                        }
+                    ]
+                }
+            },
+            "Metadata": {
+                "AWS::CloudFormation::Designer": {
+                    "id": "7427b006-5671-426c-a1de-9384bd833a6a"
+                }
+            },
+            "DependsOn": [
+                "SecurityGroupComplianceRemediate"
+            ]
+        }
+    },
+    "Outputs": {
+        "ConfigRuleForSecurityGroupValidationArn": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ConfigRuleForSecurityGroupValidation",
+                    "Arn"
+                ]
+            }
+        },
+        "ConfigRuleForSecurityGroupValidationConfigRuleId": {
+            "Value": {
+                "Fn::GetAtt": [
+                    "ConfigRuleForSecurityGroupValidation",
+                    "ConfigRuleId"
+                ]
+            }
+        }
+    },
+    "Metadata": {
+        "AWS::CloudFormation::Designer": {
+            "7ca85071-5300-4fca-be0c-17c0553eef5e": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 1160,
+                    "y": 150
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "8e3ab785-13fd-447a-bf49-64e160b81e7a": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 930,
+                    "y": 150
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "f21b78c5-4288-4ad3-bba6-3ba158d056a4": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 660,
+                    "y": 300
+                },
+                "z": 1,
+                "embeds": [],
+                "isassociatedwith": [
+                    "8e3ab785-13fd-447a-bf49-64e160b81e7a"
+                ]
+            },
+            "a67c6bf2-8620-4f8e-bc43-dcd42bca5d14": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 300,
+                    "y": 210
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "d7f56e64-c53f-416f-938b-23bb7f0c18fc": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 420,
+                    "y": 210
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "2a35c781-54bf-4365-a598-d817a7ea55b4": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 300,
+                    "y": 360
+                },
+                "z": 1,
+                "embeds": [],
+                "isassociatedwith": [
+                    "a67c6bf2-8620-4f8e-bc43-dcd42bca5d14"
+                ]
+            },
+            "fd3d8ce9-64ae-44ce-9f47-6371e7e0dfca": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 570,
+                    "y": 210
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "caf9deb3-d822-44a2-8352-6c84e1ba96df": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 660,
+                    "y": 120
+                },
+                "z": 1,
+                "embeds": [],
+                "dependson": [
+                    "f21b78c5-4288-4ad3-bba6-3ba158d056a4",
+                    "fd3d8ce9-64ae-44ce-9f47-6371e7e0dfca"
+                ]
+            },
+            "7427b006-5671-426c-a1de-9384bd833a6a": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 1050,
+                    "y": 300
+                },
+                "z": 1,
+                "embeds": [],
+                "dependson": [
+                    "64591b84-2cbf-4610-b07c-c12e314be439"
+                ]
+            },
+            "64591b84-2cbf-4610-b07c-c12e314be439": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 930,
+                    "y": 300
+                },
+                "z": 1,
+                "embeds": []
+            },
+            "0d6c2c54-295c-4f19-bfed-ef03991087e3": {
+                "size": {
+                    "width": 60,
+                    "height": 60
+                },
+                "position": {
+                    "x": 660,
+                    "y": 10
+                },
+                "z": 1,
+                "embeds": [],
+                "dependson": [
+                    "caf9deb3-d822-44a2-8352-6c84e1ba96df",
+                    "7427b006-5671-426c-a1de-9384bd833a6a"
+                ]
+            },
+            "d432f5a6-56bd-423c-8f75-f7e94c3ffdac": {
+                "source": {
+                    "id": "7427b006-5671-426c-a1de-9384bd833a6a"
+                },
+                "target": {
+                    "id": "64591b84-2cbf-4610-b07c-c12e314be439"
+                },
+                "z": 2
+            },
+            "19d396fe-0a0a-4476-8fa1-e8c87d27a9b5": {
+                "source": {
+                    "id": "0d6c2c54-295c-4f19-bfed-ef03991087e3"
+                },
+                "target": {
+                    "id": "caf9deb3-d822-44a2-8352-6c84e1ba96df"
+                },
+                "z": 3
+            },
+            "ba907f59-dd26-471a-a7a6-0bad1eac5dd9": {
+                "source": {
+                    "id": "0d6c2c54-295c-4f19-bfed-ef03991087e3"
+                },
+                "target": {
+                    "id": "7427b006-5671-426c-a1de-9384bd833a6a"
+                },
+                "z": 4
+            }
+        }
+    }
+}

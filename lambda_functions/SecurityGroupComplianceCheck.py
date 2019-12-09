@@ -48,7 +48,7 @@ import boto3
 import botocore
 import json
 
- 
+
 APPLICABLE_RESOURCES = ["AWS::EC2::SecurityGroup"]
 
 # Specify the required ingress permissions using the same key layout as that provided in the
@@ -63,25 +63,6 @@ DENIED_PERMISSIONS = [
 {"FromPort": 80, "IpProtocol": "tcp", "IpRanges": [{"CidrIp": "0.0.0.0/0", "Description": ""}], "Ipv6Ranges": [{"CidrIpv6": "::/0", "Description": ""}], "PrefixListIds": [], "ToPort": 80, "UserIdGroupPairs": []}
 ]
 
-# normalize_parameters
-#
-# Normalize all rule parameters so we can handle them consistently.
-# All keys are stored in lower case.  Only boolean and numeric keys are stored.
-
-def normalize_parameters(rule_parameters):
-    for key, value in rule_parameters.items():
-        normalized_key=key.lower()
-        normalized_value=value.lower()
-
-        if normalized_value == "true":
-            rule_parameters[normalized_key] = True
-        elif normalized_value == "false":
-            rule_parameters[normalized_key] = False
-        elif normalized_value.isdigit():
-            rule_parameters[normalized_key] = int(normalized_value)
-        else:
-            rule_parameters[normalized_key] = True
-    return rule_parameters
 
 # evaluate_compliance
 #
@@ -135,7 +116,7 @@ def evaluate_compliance(configuration_item, debug_enabled):
             "compliance_type" : "NON_COMPLIANT",
             "annotation" : "describe_security_groups failure on group " + group_id
         }
-        
+
 
     ip_permissions = response["SecurityGroups"][0]["IpPermissions"]
     authorize_permissions = [item for item in REQUIRED_PERMISSIONS if item not in ip_permissions]
@@ -165,19 +146,16 @@ def evaluate_compliance(configuration_item, debug_enabled):
         }
 
 # lambda_handler
-# 
+#
 # This is the main handle for the Lambda function.  AWS Lambda passes the function an event and a context.
 # If "debug" is specified as a rule parameter, then debugging is enabled.
 
 def lambda_handler(event, context):
     invoking_event = json.loads(event['invokingEvent'])
     configuration_item = invoking_event["configurationItem"]
-    rule_parameters = normalize_parameters(json.loads(event["ruleParameters"]))
 
-    debug_enabled = False
 
-    if "debug" in rule_parameters:
-        debug_enabled = rule_parameters["debug"] 
+    debug_enabled = True
 
     if debug_enabled:
         print("Received event: " + json.dumps(event, indent=2))
