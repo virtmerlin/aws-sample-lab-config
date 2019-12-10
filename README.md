@@ -10,31 +10,31 @@ The purpose of this repo is to provide a simple set fo AWS CloudFormation Templa
 Learn How to ...
 
 - Automate deployment of AWS Config basic components
-- Track changes on a supported AWS Resource
+- Track changes on a supported AWS resource
 - Track if changes to a resource are compliant or not
-- Remediate a change
-- Recieve a notification that a change event has occured on tracked resource
+- Remediate a change to a resource with a custom lambda function
+- Recieve a notification that a change event has occured on a resource
 
 
 ## Lab Exercises
 ### (1) Automate deployment of AWS Config
 
-This should be the first exercise to complete in this sample lab.   This exercise will create the required AWS Config components for the rest of the exercises and provide a refernce CloudFormation template for you to learn how to create automation for AWS Config.   See the image & table below for what will be created:
+This should be the first exercise to complete in this sample lab.   This exercise will create the required AWS Config components for the rest of the exercises and provide a reference CloudFormation template for you to learn how to create your own automation for AWS Config.   See the image & table below for what will be created in this CloudFormation Stack:
 
 ![Config Objects to be Created](https://mglab-aws-samples.s3.amazonaws.com/aws-sample-lab-config/cf-designer-png-sample-lab-config.png)
 
-Object Name                              | Object Type                          | Object Purpose                                                                                  |
------------------------------------------|--------------------------------------|-------------------------------------------------------------------------------------------------|
-configbucket                             | AWS::S3::Bucket                      | Bucket that will hold AWS config Snapshots & History                                            |
-default                                  | AWS::Config::ConfigurationRecorder   | Service to record changes to in scope items for AWS Config                                      |
-DeliveryChannel                          | AWS::Config::DeliveryChannel         | Destination for AWS Config to pub configuration item data                                       |
-ConfigRole                               | AWS::IAM::Role                       | Role that AWS Config will use to record events and pub to delivery channel                      |
-LambdaExecutionRole                      | AWS::IAM::Role                       | Role that AWS Config will reffer to to launch the provided function in the CF template          |
-ConfigRuleForSecurityGroupValidation     | AWS::Config::ConfigRule              | Custom AWS Config Rule that checks SecurityGroup Ingress Rules for compliance                   |
-ConfigRemediationSecurityGroupValidation | AWS::Config::RemediationConfiguration| Remediation linking a SMS Automation Document to 'fix' non compliant resources from Custom Rule |
-SSMSecurityGroupRemediateDocument        | AWS::SSM::Document                   | SSM Document that will pass non compliant resource ID from config role to lambda function       |
-SecurityGroupComplianceCheck             | AWS::Lambda::Function                | Function called by ConfigRule to report on security group compliance of a SecurityGroup         |
-SecurityGroupComplianceRemediate         | AWS::Lambda::Function                | Function called by SSM document when a resource remediation is triggered                        |
+Object Name                              | Object Type                          | Object Purpose                                                                                      |
+-----------------------------------------|--------------------------------------|-----------------------------------------------------------------------------------------------------|
+configbucket                             | AWS::S3::Bucket                      | Bucket that will hold AWS config snapshots & history                                                |
+default                                  | AWS::Config::ConfigurationRecorder   | Service to record changes of in scope resource type for AWS Config                                  |
+DeliveryChannel                          | AWS::Config::DeliveryChannel         | Destination for AWS Config to publish configuration item data                                       |
+ConfigRole                               | AWS::IAM::Role                       | IAM Role that AWS Config will use to record events and pub to delivery channel                      |
+LambdaExecutionRole                      | AWS::IAM::Role                       | IAM Role that AWS Config will assume when launching the function associated with custom ConfigRule  |
+ConfigRuleForSecurityGroupValidation     | AWS::Config::ConfigRule              | Custom AWS Config Rule that checks SecurityGroup Ingress rules for compliance                       |
+ConfigRemediationSecurityGroupValidation | AWS::Config::RemediationConfiguration| Remediation linking a SMS Automation Document to 'fix' non compliant resources from Custom Rule     |
+SSMSecurityGroupRemediateDocument        | AWS::SSM::Document                   | SSM Document that will pass non compliant resource ID from config role to lambda function           |
+SecurityGroupComplianceCheck             | AWS::Lambda::Function                | Function called by ConfigRule to report on security group compliance of a SecurityGroup             |
+SecurityGroupComplianceRemediate         | AWS::Lambda::Function                | Function called by SSM document when a resource remediation is triggered                            |
 
 #### (-) Required Lab Exercises to execute before this one:
 
@@ -42,10 +42,10 @@ SecurityGroupComplianceRemediate         | AWS::Lambda::Function                
 
 #### (-) AWS Account Requirements for This Exercise:
 
-- An AWS Account.  <<<< It is highly suggested to use a test/sandbox account
-- The Account must **NOT** have a pre-existing ConfigurationRecorder or DeliveryChannel in the target region as the CF Template will be creating default ones.  See this bash [script](https://github.com/virtmerlin/aws-sample-lab-config/blob/master/scripts/remove-config-default-recorders.sh) to determine if your account has existing recorders/channels and how to delete them. 
-- A Multi-Region CloudTrail 'Trail' enabled and outputting to a s3 bucket. [link](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html)
-- An IAM user with permissions to create the following AWS resources:
+- An AWS Account.  <<<< It is highly suggested to use a test/sandbox account as the lab assumes AWS Config is not currently deployed in the AWS account.
+  - If AWS Condfig was previously deployed but not in use, the account must **NOT** have a pre-existing ConfigurationRecorder or DeliveryChannel in the target region as the CF Template will be creating new/default ones.  See this bash [script](https://github.com/virtmerlin/aws-sample-lab-config/blob/master/scripts/remove-config-default-recorders.sh) to determine if your account has existing recorders/channels and how to delete them. 
+- A Multi-Region CloudTrail 'Trail' enabled and outputting to a s3 bucket. See this [link](https://docs.aws.amazon.com/awscloudtrail/latest/userguide/receive-cloudtrail-log-files-from-multiple-regions.html) to see how to deploy.
+- An IAM user with permissions to create the following AWS resources in the region:
 
   - AWS::CloudFormation::Stack
   - AWS::Config::ConfigRule
