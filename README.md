@@ -7,13 +7,15 @@ The purpose of this repo is to provide a simple set fo AWS CloudFormation Templa
 
 ### Learning Goals
 
-Learn How to ...
+Each exercise in this sample lab will focus on a learning goal.  The goals are:
 
-- Automate deployment of AWS Config basic components
-- Track changes on a supported AWS resource
-- Track if changes to a resource are compliant or not
-- Remediate a change to a resource with a custom lambda function
-- Recieve a notification that a change event has occured on a resource
+_Learn How to_ ...
+
+- (1) Automate deployment of AWS Config basic components
+- (2) Track changes on a supported AWS resource
+- (3) Track if changes to a resource are compliant or not
+- (4) Remediate a change to a resource with a custom lambda function
+- (5) Recieve a notification that a change event has occured on a resource
 
 
 ## Lab Exercises
