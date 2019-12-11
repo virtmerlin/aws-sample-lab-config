@@ -135,7 +135,7 @@ If a SecurityGroup has any DENIED || _or_ || does NOT have any REQUIRED Ingress 
   
 **C**. Check that the Evaluation Triggered ...
 
-  - Navigate back to this [link](https://console.aws.amazon.com/config/home?region=us-east-1#/rules/rule-details/ConfigRuleForSecurityGroupValidation) showing your ConfigRule status to verify that the _Last Successful Evalution_ has triggered again.  It may take ~1-5 minutes to trigger, so refresh the screen to check status timestamp until it does (Or Alternaitvely you can look at the CloudWatch Log Group for the SecurityGroupComplianceCheck Lambda function) 
+  - Navigate back to this [link](https://console.aws.amazon.com/config/home?region=us-east-1#/rules/rule-details/ConfigRuleForSecurityGroupValidation) showing your ConfigRule status to verify that the _Last Successful Evalution_ has triggered again.  It may take ~1-5 minutes to trigger, so refresh the screen to check status timestamp until it does (alternatively you can look at the CloudWatch Log Group for the SecurityGroupComplianceCheck Lambda function and check it execution output) 
   
 **D**. Look at the Configuration Item ...
 
@@ -155,10 +155,10 @@ If a SecurityGroup has any DENIED || _or_ || does NOT have any REQUIRED Ingress 
   
 **F**. Look at the Compliance Timeline ...
 
-  - Navigate back to the _Resource ID_ & then click on the _Compliance Timeline_ button in the upper right corner of the console...
+  - Navigate back to the _Resource_ view & then click on the _Compliance Timeline_ button in the upper right corner of the console...
   ![ConfigTimeLine](https://mglab-aws-samples.s3.amazonaws.com/aws-sample-lab-config/images/2-config-timeline.png)
   - Notice the current compliance is RED since you have added HTTP to the Ingress Rules ...
   ![ConfigTimeLine](https://mglab-aws-samples.s3.amazonaws.com/aws-sample-lab-config/images/2-compliance-timeline.png)
   
   
-**G**.  Use what you have learned to change your secuerity Group state back to _Compliant_
+**G**.  Use what you have learned to change your secuerity Group state back to _Compliant_ or Green.
