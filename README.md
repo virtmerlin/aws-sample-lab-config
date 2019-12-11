@@ -78,9 +78,9 @@ Create AWS Config Stack.   This stack will deploy AWS Config in such a way that 
 **B**. Verify AWS Config after the stack is created ...
   ![AWS Config Settings](https://mglab-aws-samples.s3.amazonaws.com/aws-sample-lab-config/images/1-settings.png)
   
-     - Check your Settings via this [link](https://console.aws.amazon.com/config/home?region=us-east-1#/configure) ...
-         - Recording Should be 'ON'
-         - Recorder should only be tracking `EC2:SecurityGroup` & `Config:ResourceCompliance` for minimal cost & lab function.   What should you be able to record?  See this [link](https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html) to learn more. 
+   - Check your Settings via this [link](https://console.aws.amazon.com/config/home?region=us-east-1#/configure)
+   - Recording Should be 'ON'
+   - Recorder should only be tracking `EC2:SecurityGroup` & `Config:ResourceCompliance` for minimal cost & lab function.   What should you be able to record?  See this [link](https://docs.aws.amazon.com/config/latest/developerguide/resource-config-reference.html) to learn more. 
 
 **C**. Verify That you are tracking SecurityGroup resources ...
   ![Recorded Resources](https://mglab-aws-samples.s3.amazonaws.com/aws-sample-lab-config/images/1-resources-recorded.png)
