@@ -30,8 +30,8 @@ if [ ! -z "$CONFIGRECORDER" ] || [ ! -z "$DELIVERYCHANNEL" ]
 		if [ $ANSWER = "YES" ]
 			then
 				echo "Deleting ..."
-				if [ ! -z "$DELIVERYCHANNEL" ]; then aws configservice delete-delivery-channel --delivery-channel-name $DELIVERYCHANNEL; fi
 				if [ ! -z "$CONFIGRECORDER" ]; then aws configservice delete-configuration-recorder --configuration-recorder-name $CONFIGRECORDER; fi
+				if [ ! -z "$DELIVERYCHANNEL" ]; then aws configservice delete-delivery-channel --delivery-channel-name $DELIVERYCHANNEL; fi
 			else
 				echo "Doing Nothing & Exiting"
 		fi
